@@ -1,0 +1,103 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Rate limiting collection to track submissions per IP
+    match /rate_limits/{ip} {
+      allow read, write: if true;
+    }
+    
+    // Reports collection with rate limiting
+    match /reports/{reportId} {
+      // Allow reading all reports for public search functionality
+      allow read: if true;
+      
+      // Allow creating reports with rate limiting (max 2 reports per 30 minutes per IP)
+      allow create: if validateReportData() && checkRateLimit();
+      
+      // Allow updating only by the report owner
+      allow update: if request.auth != null && 
+                     request.auth.uid == resource.data.userId;
+      
+      // Allow deleting only by the report owner or admin
+      allow delete: if request.auth != null && 
+                     (request.auth.uid == resource.data.userId || 
+                      hasAdminRole());
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if request.auth != null && 
+                          request.auth.uid == userId;
+    }
+    
+    // Admin collection (for admin users)
+    match /admins/{adminId} {
+      allow read: if request.auth != null && 
+                   request.auth.uid == adminId;
+    }
+    
+    // Function to validate report data structure
+    function validateReportData() {
+      return request.resource.data.keys().hasAll([
+        'name', 'contact', 'category', 'description', 'type', 'createdAt', 'status'
+      ]) &&
+      request.resource.data.name is string &&
+      request.resource.data.contact is string &&
+      request.resource.data.category is string &&
+      request.resource.data.description is string &&
+      request.resource.data.type in ['lost', 'found'] &&
+      request.resource.data.status in ['active', 'resolved', 'expired'] &&
+      request.resource.data.createdAt is timestamp &&
+      request.resource.data.name.size() > 0 &&
+      request.resource.data.contact.size() > 0 &&
+      request.resource.data.description.size() >= 10 &&
+      request.resource.data.description.size() <= 1000;
+    }
+    
+    // Function to check rate limiting (2 reports per 30 minutes per IP)
+    function checkRateLimit() {
+      let clientIP = request.headers['x-forwarded-for'];
+      let now = request.time;
+      let thirtyMinutesAgo = duration.value(30, 'm');
+      
+      // Get existing rate limit document for this IP
+      let rateLimitDoc = get(/databases/$(database)/documents/rate_limits/$(clientIP));
+      
+      // If no rate limit document exists, allow the request
+      return !exists(/databases/$(database)/documents/rate_limits/$(clientIP)) ||
+             // If rate limit document exists, check if we're within limits
+             (rateLimitDoc.data.submissions.size() < 2 ||
+              // Or if oldest submission is older than 30 minutes
+              rateLimitDoc.data.submissions[0] < (now - thirtyMinutesAgo));
+    }
+    
+    // Function to check if user has admin role
+    function hasAdminRole() {
+      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    
+    // Statistics collection (read-only for public, write for system)
+    match /statistics/{statId} {
+      allow read: if true;
+      allow write: if false; // Only system/cloud functions should update stats
+    }
+    
+    // Matches collection for tracking potential matches between lost/found items
+    match /matches/{matchId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && validateMatchData();
+      allow update: if request.auth != null;
+    }
+    
+    function validateMatchData() {
+      return request.resource.data.keys().hasAll([
+        'lostReportId', 'foundReportId', 'confidence', 'createdAt', 'status'
+      ]) &&
+      request.resource.data.confidence is number &&
+      request.resource.data.confidence >= 0 &&
+      request.resource.data.confidence <= 1 &&
+      request.resource.data.status in ['pending', 'confirmed', 'rejected'];
+    }
+  }
+}
