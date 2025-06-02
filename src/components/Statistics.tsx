@@ -1,50 +1,60 @@
+
 import { useEffect, useState } from 'react';
+import { useStatistics } from '@/hooks/useStatistics';
 
 const Statistics = () => {
+  const { statistics, loading, error } = useStatistics();
   const [animatedNumbers, setAnimatedNumbers] = useState([0, 0, 0, 0]);
   
   const stats = [
-    { number: 1234, label: 'أغراض مُستردة', icon: '✅', color: 'from-green-400 to-green-600' },
-    { number: 567, label: 'بلاغات جديدة', icon: '📢', color: 'from-blue-400 to-blue-600' },
-    { number: 890, label: 'مستخدم نشط', icon: '👥', color: 'from-purple-400 to-purple-600' },
-    { number: 45, label: 'ولاية مشاركة', icon: '🏛️', color: 'from-algeria-red to-red-600' }
+    { number: statistics.totalReturned, label: 'أغراض مُستردة', icon: '✅', color: 'from-green-400 to-green-600' },
+    { number: statistics.newReports, label: 'بلاغات جديدة', icon: '📢', color: 'from-blue-400 to-blue-600' },
+    { number: statistics.activeUsers, label: 'مستخدم نشط', icon: '👥', color: 'from-purple-400 to-purple-600' },
+    { number: statistics.participatingStates, label: 'ولاية مشاركة', icon: '🏛️', color: 'from-algeria-red to-red-600' }
   ];
 
   useEffect(() => {
-    const animateNumbers = () => {
-      stats.forEach((stat, index) => {
-        let current = 0;
-        const increment = stat.number / 50;
-        const timer = setInterval(() => {
-          current += increment;
-          if (current >= stat.number) {
-            current = stat.number;
-            clearInterval(timer);
+    // Only animate when we have data and not loading
+    if (!loading && !error) {
+      const animateNumbers = () => {
+        stats.forEach((stat, index) => {
+          let current = 0;
+          const increment = stat.number / 50;
+          const timer = setInterval(() => {
+            current += increment;
+            if (current >= stat.number) {
+              current = stat.number;
+              clearInterval(timer);
+            }
+            setAnimatedNumbers(prev => {
+              const newNumbers = [...prev];
+              newNumbers[index] = Math.floor(current);
+              return newNumbers;
+            });
+          }, 40);
+        });
+      };
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            animateNumbers();
+            observer.disconnect();
           }
-          setAnimatedNumbers(prev => {
-            const newNumbers = [...prev];
-            newNumbers[index] = Math.floor(current);
-            return newNumbers;
-          });
-        }, 40);
-      });
-    };
+        },
+        { threshold: 0.1 }
+      );
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          animateNumbers();
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
+      const element = document.getElementById('statistics-section');
+      if (element) observer.observe(element);
 
-    const element = document.getElementById('statistics-section');
-    if (element) observer.observe(element);
+      return () => observer.disconnect();
+    }
+  }, [loading, error, statistics]);
 
-    return () => observer.disconnect();
-  }, []);
+  if (error) {
+    console.error('Statistics error:', error);
+  }
 
   return (
     <section id="statistics-section" className="py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 relative overflow-hidden">
@@ -88,23 +98,33 @@ const Statistics = () => {
               {/* Animated number */}
               <div className="text-center relative">
                 <div className="text-4xl md:text-5xl font-bold text-gray-800 mb-3 font-mono">
-                  {animatedNumbers[index].toLocaleString('ar-DZ')}
-                  {stat.number > 1000 && <span className="text-algeria-green">+</span>}
+                  {loading ? (
+                    <div className="animate-pulse bg-gray-300 h-12 w-24 mx-auto rounded"></div>
+                  ) : error ? (
+                    <span className="text-red-500 text-xl">خطأ</span>
+                  ) : (
+                    <>
+                      {animatedNumbers[index].toLocaleString('ar-DZ')}
+                      {stat.number > 1000 && <span className="text-algeria-green">+</span>}
+                    </>
+                  )}
                 </div>
                 <div className="text-gray-600 font-semibold text-lg leading-relaxed">
                   {stat.label}
                 </div>
                 
                 {/* Progress bar */}
-                <div className="mt-4 w-full bg-gray-200 rounded-full h-1 overflow-hidden">
-                  <div 
-                    className={`h-full bg-gradient-to-r ${stat.color} rounded-full transition-all duration-1000 ease-out`}
-                    style={{ 
-                      width: `${(animatedNumbers[index] / stat.number) * 100}%`,
-                      transitionDelay: `${index * 200}ms`
-                    }}
-                  ></div>
-                </div>
+                {!loading && !error && (
+                  <div className="mt-4 w-full bg-gray-200 rounded-full h-1 overflow-hidden">
+                    <div 
+                      className={`h-full bg-gradient-to-r ${stat.color} rounded-full transition-all duration-1000 ease-out`}
+                      style={{ 
+                        width: `${(animatedNumbers[index] / stat.number) * 100}%`,
+                        transitionDelay: `${index * 200}ms`
+                      }}
+                    ></div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
