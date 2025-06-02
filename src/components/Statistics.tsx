@@ -9,8 +9,8 @@ const Statistics = () => {
   const stats = [
     { number: statistics.totalReturned, label: 'أغراض مُستردة', icon: '✅', color: 'from-green-400 to-green-600' },
     { number: statistics.newReports, label: 'بلاغات جديدة', icon: '📢', color: 'from-blue-400 to-blue-600' },
-    { number: statistics.activeUsers, label: 'مستخدم نشط', icon: '👥', color: 'from-purple-400 to-purple-600' },
-    { number: statistics.participatingStates, label: 'ولاية مشاركة', icon: '🏛️', color: 'from-algeria-red to-red-600' }
+    { number: statistics.totalReports, label: 'إجمالي البلاغات', icon: '📊', color: 'from-purple-400 to-purple-600' },
+    { number: statistics.successRate, label: 'نسبة النجاح %', icon: '🎯', color: 'from-algeria-red to-red-600' }
   ];
 
   useEffect(() => {

@@ -6,16 +6,16 @@ import { db } from '@/lib/firebase';
 interface StatisticsData {
   totalReturned: number;
   newReports: number;
-  activeUsers: number;
-  participatingStates: number;
+  totalReports: number;
+  successRate: number;
 }
 
 export const useStatistics = () => {
   const [statistics, setStatistics] = useState<StatisticsData>({
     totalReturned: 0,
     newReports: 0,
-    activeUsers: 0,
-    participatingStates: 0
+    totalReports: 0,
+    successRate: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,32 +42,26 @@ export const useStatistics = () => {
         );
         const newReportsSnapshot = await getCountFromServer(newReportsQuery);
         
-        // Count active users (unique users who submitted reports)
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        const activeUsers = usersSnapshot.size;
+        // Count total reports
+        const totalReportsSnapshot = await getCountFromServer(collection(db, 'reports'));
         
-        // Count participating states (unique locations from reports)
-        const reportsSnapshot = await getDocs(collection(db, 'reports'));
-        const states = new Set();
-        reportsSnapshot.forEach(doc => {
-          const location = doc.data().location;
-          if (location) {
-            states.add(location);
-          }
-        });
+        // Calculate success rate
+        const totalReports = totalReportsSnapshot.data().count;
+        const totalReturned = returnedSnapshot.data().count;
+        const successRate = totalReports > 0 ? Math.round((totalReturned / totalReports) * 100) : 0;
         
         setStatistics({
-          totalReturned: returnedSnapshot.data().count,
+          totalReturned: totalReturned,
           newReports: newReportsSnapshot.data().count,
-          activeUsers: activeUsers,
-          participatingStates: states.size
+          totalReports: totalReports,
+          successRate: successRate
         });
         
         console.log('Statistics fetched successfully:', {
-          totalReturned: returnedSnapshot.data().count,
+          totalReturned: totalReturned,
           newReports: newReportsSnapshot.data().count,
-          activeUsers: activeUsers,
-          participatingStates: states.size
+          totalReports: totalReports,
+          successRate: successRate
         });
         
       } catch (err) {

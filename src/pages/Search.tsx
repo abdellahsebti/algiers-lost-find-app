@@ -8,11 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useSearchReports } from '@/hooks/useSearchReports';
 
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedType, setSelectedType] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
+
+  const { reports, loading, error } = useSearchReports({
+    searchQuery,
+    category: selectedCategory,
+    type: selectedType
+  });
 
   const categories = [
     { value: 'all', label: 'جميع الفئات' },
@@ -32,39 +39,8 @@ const Search = () => {
     { value: 'found', label: 'معثور عليه فقط' }
   ];
 
-  // Mock data for demonstration
-  const mockResults = [
-    {
-      id: 1,
-      type: 'lost',
-      category: 'محفظة',
-      description: 'محفظة جلدية سوداء تحتوي على بطاقة تعريف وبعض النقود',
-      location: 'جامعة الجزائر 3',
-      date: '2024-01-15',
-      contact: 'أحمد - 0555123456'
-    },
-    {
-      id: 2,
-      type: 'found',
-      category: 'مفاتيح',
-      description: 'حلقة مفاتيح زرقاء مع 4 مفاتيح ومفتاح سيارة تويوتا',
-      location: 'محطة حافلات باب الزوار',
-      date: '2024-01-14',
-      contact: 'فاطمة - fatima@email.com'
-    },
-    {
-      id: 3,
-      type: 'lost',
-      category: 'هاتف محمول',
-      description: 'هاتف سامسونغ أزرق مع كفر أسود',
-      location: 'مركز التسوق أردي',
-      date: '2024-01-13',
-      contact: 'يوسف - 0777987654'
-    }
-  ];
-
   const handleSearch = () => {
-    // Here you would normally filter the results based on search criteria
+    // The search is automatically triggered by the useSearchReports hook
     console.log('Searching for:', { searchQuery, selectedCategory, selectedType });
   };
 
@@ -139,8 +115,9 @@ const Search = () => {
                 <Button 
                   onClick={handleSearch}
                   className="w-full bg-algeria-red hover:bg-red-700 text-white"
+                  disabled={loading}
                 >
-                  🔍 ابحث
+                  {loading ? '🔄 جاري البحث...' : '🔍 ابحث'}
                 </Button>
               </div>
             </div>
@@ -151,58 +128,80 @@ const Search = () => {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-gray-900">نتائج البحث</h2>
-            <span className="text-gray-600">{mockResults.length} نتيجة</span>
+            <span className="text-gray-600">
+              {loading ? 'جاري التحميل...' : `${reports.length} نتيجة`}
+            </span>
           </div>
 
-          <div className="grid gap-6">
-            {mockResults.map((item) => (
-              <Card key={item.id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex gap-2">
-                      <Badge 
-                        variant={item.type === 'lost' ? 'destructive' : 'default'}
-                        className={item.type === 'lost' ? 'bg-algeria-red' : 'bg-algeria-green'}
+          {error && (
+            <div className="text-center py-8">
+              <div className="text-red-500 text-xl">{error}</div>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="grid gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="h-4 bg-gray-300 rounded mb-4"></div>
+                    <div className="h-6 bg-gray-300 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-300 rounded"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-6">
+              {reports.map((item) => (
+                <Card key={item.id} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex gap-2">
+                        <Badge 
+                          variant={item.type === 'lost' ? 'destructive' : 'default'}
+                          className={item.type === 'lost' ? 'bg-algeria-red' : 'bg-algeria-green'}
+                        >
+                          {item.type === 'lost' ? '📢 مفقود' : '✋ معثور عليه'}
+                        </Badge>
+                        <Badge variant="outline">
+                          {item.category}
+                        </Badge>
+                      </div>
+                      <span className="text-sm text-gray-500">{item.date}</span>
+                    </div>
+
+                    <h3 className="text-lg font-semibold mb-2 text-right">
+                      {item.description}
+                    </h3>
+
+                    <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
+                      <div className="text-right">
+                        <span className="font-medium">📍 المكان: </span>
+                        {item.location}
+                      </div>
+                      <div className="text-right">
+                        <span className="font-medium">📞 التواصل: </span>
+                        {item.contact}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 text-right">
+                      <Button 
+                        variant="outline" 
+                        className="border-algeria-green text-algeria-green hover:bg-algeria-green hover:text-white"
                       >
-                        {item.type === 'lost' ? '📢 مفقود' : '✋ معثور عليه'}
-                      </Badge>
-                      <Badge variant="outline">
-                        {item.category}
-                      </Badge>
+                        📞 تواصل مع المُبلغ
+                      </Button>
                     </div>
-                    <span className="text-sm text-gray-500">{item.date}</span>
-                  </div>
-
-                  <h3 className="text-lg font-semibold mb-2 text-right">
-                    {item.description}
-                  </h3>
-
-                  <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
-                    <div className="text-right">
-                      <span className="font-medium">📍 المكان: </span>
-                      {item.location}
-                    </div>
-                    <div className="text-right">
-                      <span className="font-medium">📞 التواصل: </span>
-                      {item.contact}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 text-right">
-                    <Button 
-                      variant="outline" 
-                      className="border-algeria-green text-algeria-green hover:bg-algeria-green hover:text-white"
-                    >
-                      📞 تواصل مع المُبلغ
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* No Results Message */}
-          {mockResults.length === 0 && (
+          {!loading && reports.length === 0 && !error && (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🔍</div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">

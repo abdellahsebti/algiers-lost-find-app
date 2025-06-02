@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 
 const Footer = () => {
@@ -29,8 +30,8 @@ const Footer = () => {
             </p>
             <div className="flex items-center space-x-4 space-x-reverse">
               <div className="flex items-center space-x-2 space-x-reverse bg-algeria-green/10 px-4 py-2 rounded-full border border-algeria-green/20">
-                <span className="text-algeria-green text-xl">🇩🇿</span>
-                <span className="text-green-400 font-semibold">صنع بحب في الجزائر</span>
+                <span className="text-algeria-green text-xl">💻</span>
+                <span className="text-green-400 font-semibold">صنع بحب من فريق ضمة</span>
               </div>
             </div>
           </div>
@@ -95,9 +96,9 @@ const Footer = () => {
               © 2024 المفقودات الجزائرية. جميع الحقوق محفوظة.
             </p>
             <div className="flex items-center space-x-6 space-x-reverse text-sm text-gray-400">
-              <a href="#" className="hover:text-algeria-green transition-colors">سياسة الخصوصية</a>
-              <a href="#" className="hover:text-algeria-green transition-colors">شروط الاستخدام</a>
-              <a href="#" className="hover:text-algeria-green transition-colors">اتفاقية الخدمة</a>
+              <Link to="/privacy" className="hover:text-algeria-green transition-colors">سياسة الخصوصية</Link>
+              <Link to="/terms" className="hover:text-algeria-green transition-colors">شروط الاستخدام</Link>
+              <Link to="/service-agreement" className="hover:text-algeria-green transition-colors">اتفاقية الخدمة</Link>
             </div>
           </div>
         </div>
